@@ -23,4 +23,9 @@ public class HttpRequest {
     public String getValue(String key) {
         return queryParams.getOrDefault(key, "");
     }
+
+    // Alias requerido por el enunciado: req.getValues("name")
+    public String getValues(String key) {
+        return getValue(key);
+    }
 }

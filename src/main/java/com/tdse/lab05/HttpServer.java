@@ -90,9 +90,14 @@ public class HttpServer {
                         + "</body>"
                         + "</html>";
             } else {
+                // Normalizar barras: staticFilesLocation puede traer '/' inicial y reqpath también
+                String cleanStatic = staticFilesLocation.startsWith("/")
+                        ? staticFilesLocation.substring(1) : staticFilesLocation;
+                String cleanReqpath = reqpath.startsWith("/")
+                        ? reqpath.substring(1) : reqpath;
                 String filePath = "target/classes/"
-                        + (staticFilesLocation.isEmpty() ? "" : staticFilesLocation + "/")
-                        + reqpath;
+                        + (cleanStatic.isEmpty() ? "" : cleanStatic + "/")
+                        + cleanReqpath;
                 File staticFile = new File(filePath);
 
                 if (!staticFilesLocation.isEmpty() && staticFile.exists() && staticFile.isFile()) {
