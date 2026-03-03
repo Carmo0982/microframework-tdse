@@ -2,12 +2,14 @@ package com.tdse.lab05;
 
 import java.net.*;
 import java.io.*;
+import java.nio.file.Files;
 import java.util.HashMap;
 import java.util.Map;
 
 
 public class HttpServer {
     static Map<String, WebMethod> endPoints = new HashMap<>();
+    static String staticFilesLocation = "";
     public static void main(String[] args) throws IOException, URISyntaxException {
         ServerSocket serverSocket = null;
         try {
@@ -36,7 +38,7 @@ public class HttpServer {
             BufferedReader in = new BufferedReader(
                     new InputStreamReader(
                             clientSocket.getInputStream()));
-            String inputLine, outputLine;
+            String inputLine, outputLine = "";
 
 
             boolean firstLine = true;
@@ -72,7 +74,8 @@ public class HttpServer {
             HttpResponse res = new HttpResponse();
 
             if (endPoints.containsKey(reqpath)) {
-                String body = endPoints.get(reqpath).execute(req, res);
+                WebMethod wm = endPoints.get(reqpath);
+                String body = wm.execute(req, res);
                 outputLine = "HTTP/1.1 200 OK\r\n"
                         + "Content-Type: text/html\r\n"
                         + "\r\n"
@@ -87,20 +90,42 @@ public class HttpServer {
                         + "</body>"
                         + "</html>";
             } else {
-                outputLine
-                        = "HTTP/1.1 200 OK\r\n"
-                        + "Content-Type: text/html\r\n"
-                        + "\r\n"
-                        + "<!DOCTYPE html>"
-                        + "<html>"
-                        + "<head>"
-                        + "<meta charset=\"UTF-8\">"
-                        + "<title>Title of the document</title>"
-                        + "</head>"
-                        + "<body>"
-                        + "My Web Site"
-                        + "</body>"
-                        + "</html>";
+                String filePath = "target/classes/"
+                        + (staticFilesLocation.isEmpty() ? "" : staticFilesLocation + "/")
+                        + reqpath;
+                File staticFile = new File(filePath);
+
+                if (!staticFilesLocation.isEmpty() && staticFile.exists() && staticFile.isFile()) {
+                    String contentType = getContentType(reqpath);
+                    byte[] fileBytes = Files.readAllBytes(staticFile.toPath());
+                    String header = "HTTP/1.1 200 OK\r\n"
+                            + "Content-Type: " + contentType + "\r\n"
+                            + "Content-Length: " + fileBytes.length + "\r\n"
+                            + "\r\n";
+                    OutputStream rawOut = clientSocket.getOutputStream();
+                    rawOut.write(header.getBytes());
+                    rawOut.write(fileBytes);
+                    rawOut.flush();
+                    out.close();
+                    in.close();
+                    clientSocket.close();
+                    continue;
+                } else {
+                    outputLine
+                            = "HTTP/1.1 404 Not Found\r\n"
+                            + "Content-Type: text/html\r\n"
+                            + "\r\n"
+                            + "<!DOCTYPE html>"
+                            + "<html>"
+                            + "<head>"
+                            + "<meta charset=\"UTF-8\">"
+                            + "<title>404 Not Found</title>"
+                            + "</head>"
+                            + "<body>"
+                            + "<h1>404 - Resource not found</h1>"
+                            + "</body>"
+                            + "</html>";
+                }
             }
             out.println(outputLine);
 
@@ -111,7 +136,24 @@ public class HttpServer {
         }
         serverSocket.close();
     }
-    public static void get(String path,WebMethod wm){
-        endPoints.put(path,wm);
+    public static void get(String path, WebMethod wm) {
+        endPoints.put(path, wm);
+    }
+
+    public static void staticfiles(String folder) {
+        staticFilesLocation = folder;
+    }
+
+    private static String getContentType(String path) {
+        if (path.endsWith(".html") || path.endsWith(".htm")) return "text/html";
+        if (path.endsWith(".css"))   return "text/css";
+        if (path.endsWith(".js"))    return "application/javascript";
+        if (path.endsWith(".png"))   return "image/png";
+        if (path.endsWith(".jpg") || path.endsWith(".jpeg")) return "image/jpeg";
+        if (path.endsWith(".gif"))   return "image/gif";
+        if (path.endsWith(".ico"))   return "image/x-icon";
+        if (path.endsWith(".svg"))   return "image/svg+xml";
+        if (path.endsWith(".json"))  return "application/json";
+        return "application/octet-stream";
     }
 }

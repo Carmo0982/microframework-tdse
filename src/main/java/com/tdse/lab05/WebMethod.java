@@ -1,10 +1,6 @@
 package com.tdse.lab05;
 
-
-
-
-
-
+@FunctionalInterface
 public interface WebMethod {
-    public String execute(HttpRequest req, HttpResponse res);
+    String execute(HttpRequest req, HttpResponse res);
 }
